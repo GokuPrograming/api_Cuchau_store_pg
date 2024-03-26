@@ -1,6 +1,6 @@
 const { Pool } = require('pg');
 const db = new Pool({
-    user:'cuchau_store_user',
+    user: 'cuchau_store_user',
     host: 'dpg-co0efm2cn0vc73cb92ug-a.oregon-postgres.render.com',
     database: 'cuchau_store',
     password: '1aesvAmf7POuomnsrHWLsledtq0Dg352',
