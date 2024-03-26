@@ -1,4 +1,5 @@
 const express = require('express')
+const jwt = require('jsonwebtoken');  // Importa jsonwebtoken
 const db = require('../database/connection')
 const router = express.Router()
 
@@ -31,6 +32,7 @@ router.get('/usuario/:id', async (req, res) => {
         res.send("Error " + err);
     }
 });
+
 router.post('/usuario/login', async (req, res) => {
     const { correo, password } = req.body;  // Obtener correo y password desde el cuerpo de la solicitud
 
@@ -42,7 +44,11 @@ router.post('/usuario/login', async (req, res) => {
 
         if (result.rows.length > 0) {
             const user = result.rows[0];
-            res.json({ 'message': 'Inicio de sesión exitoso', 'data': user });
+
+            // Generar un token JWT
+            const token = jwt.sign({ id_usuario: user.id_usuario, correo: user.correo }, 'secreto', { expiresIn: '1h' });  // 'secreto' debe ser una cadena segura en la vida real
+
+            res.json({ 'message': 'Inicio de sesión exitoso', 'token': token });
         } else {
             res.status(401).json({ 'message': 'Correo o contraseña incorrectos' });
         }
