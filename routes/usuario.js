@@ -6,7 +6,7 @@ const router = express.Router()
 router.get('/usuario', async (req, res) => {
     try {
         const client = await db.connect();
-        const result = await client.query('SELECT * FROM usuario');
+        const result = await client.query('select * from usuario');
         const results = { 'data': (result) ? result.rows : null };
         res.json(results);
         client.release();
