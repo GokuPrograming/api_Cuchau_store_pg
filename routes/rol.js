@@ -19,4 +19,17 @@ router.get('/rol', async (req, res) => {
         res.send("Error " + err);
     }
 });
+
+router.get('/con', async (req, res) => {
+    try {
+        const client = await db.connect();
+        const result = await client.query('SELECT * FROM countries');
+        const results = { 'data': (result) ? result.rows : null };
+        res.json(results);
+        client.release();
+    } catch (err) {
+        console.error(err);
+        res.send("Error " + err);
+    }
+});
 module.exports = router;
