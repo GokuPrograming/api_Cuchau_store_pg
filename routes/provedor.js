@@ -28,4 +28,17 @@ router.get('/proveedor/:oid', async (req, res) => {
         res.send("Error " + err);
     }
 });
+
+router.get('/proveedor/categoria/:oid', async (req, res) => {
+    try {
+        const client = await db.connect();
+        const result = await client.query('select * from proveedor where id_categoria = $1', [req.params.oid]);
+        const results = { 'data': (result) ? result.rows : null };
+        res.json(results);
+        client.release();
+    } catch (err) {
+        console.error(err);
+        res.send("Error " + err);
+    }
+});
 module.exports = router;
