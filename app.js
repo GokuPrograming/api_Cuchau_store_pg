@@ -10,5 +10,5 @@ const user = require('./routes/usuario')
 const app = express()
 app.use(express.json())
 //uso de las rutas
-app.use('/',rol,user)
-app.listen(port, async() => console.log(`Example app listening on port ${port}!`))
+app.use('/', rol, user)
+app.listen(port, async () => console.log(`Example app listening on port ${port}!`))
