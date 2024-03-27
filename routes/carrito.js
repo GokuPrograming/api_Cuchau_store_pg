@@ -1,11 +1,12 @@
 const express = require('express');
 const router = express.Router();
 const db = require('../database/connection')  // Importa tu conexión a la base de datos aquí
-//const verificarToken = require('./verificaToken');  // Importa el middleware de verificación de token
+
+const verificarToken = require('./verificaToken');
+
 
 router.get('/carrito', verificarToken, async (req, res) => {
     const { id_usuario } = req.usuario;  // Obtener id_usuario del token verificado
-
     try {
         const client = await db.connect();
 
@@ -21,5 +22,6 @@ router.get('/carrito', verificarToken, async (req, res) => {
         res.status(500).send("inicia sesion" + err);
     }
 });
+
 
 module.exports = router;
