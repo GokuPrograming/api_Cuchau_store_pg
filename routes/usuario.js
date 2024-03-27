@@ -1,4 +1,5 @@
 const express = require('express')
+const crypto = require('crypto');
 const jwt = require('jsonwebtoken');  // Importa jsonwebtoken
 const db = require('../database/connection')
 const router = express.Router()
@@ -27,7 +28,8 @@ router.post('/usuario/login', async (req, res) => {
 });
 router.post('/usuario/registro', async (req, res) => {
     const { correo, password, nombre, apellido_paterno, apellido_materno, telefono, fecha_nacimiento } = req.body;
-    const id_rol = 1;
+    const id_rol = 2;
+    const password_encriptada = crypto.createHash('md5').update(password).digest('hex');
     // Fecha actual en formato ISO (UTC)
     const fecha_registro = new Date().toISOString();
     //conecta a la base de datos
@@ -39,7 +41,7 @@ router.post('/usuario/registro', async (req, res) => {
         //insertar a tabla usuario
         const inserta_Usuario = await client.query(
             'INSERT INTO usuario(correo, password, id_rol, fecha_registro) VALUES($1, $2, $3, $4)',
-            [correo, password, id_rol, fecha_registro]
+            [correo, password_encriptada, id_rol, fecha_registro]
         );
         //obtener el ultimo id de la tabla de usuario
         const last_id = await client.query('SELECT * FROM usuario ORDER BY id_usuario DESC LIMIT 1');
@@ -52,10 +54,10 @@ router.post('/usuario/registro', async (req, res) => {
         );
         // Confirmar transacción
         await client.query('COMMIT');
-        console.log('Registro exitoso', correo, password, nombre, apellido_paterno, apellido_materno, telefono, fecha_nacimiento, id_rol, fecha_registro);
+        console.log('Registro exitoso', correo, password_encriptada, nombre, apellido_paterno, apellido_materno, telefono, fecha_nacimiento, id_rol, fecha_registro);
         //envia los datos
         res.json({
-            correo, password, nombre, apellido_paterno, apellido_materno, telefono, fecha_nacimiento
+            correo, password_encriptada, nombre, apellido_paterno, apellido_materno, telefono, fecha_nacimiento
         });
     } catch (err) {
         // Revertir transacción en caso de error
