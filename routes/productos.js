@@ -2,6 +2,7 @@ const express = require('express')
 const db = require('../database/connection')
 const router = express.Router()
 
+
 router.get('/product', async (req, res) => {
     try {
         const client = await db.connect();
@@ -14,3 +15,5 @@ router.get('/product', async (req, res) => {
         res.send("Error " + err);
     }
 });
+
+module.exports = router;

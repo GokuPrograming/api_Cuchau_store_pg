@@ -8,22 +8,35 @@ const verificarToken = require('./verificaToken');
 
 
 router.post('/usuario/login', async (req, res) => {
-    const { correo, password } = req.body;  // Obtener correo y password desde el cuerpo de la solicitud
+    const { correo, password } = req.body; // Obtener correo y password desde el cuerpo de la solicitud
+
     try {
+        // Encriptación de la contraseña (se recomienda usar un algoritmo más seguro)
+        const password_encriptada = crypto.createHash('md5').update(password).digest('hex');
+
         const client = await db.connect();
-        const result = await client.query('SELECT * FROM usuario WHERE correo = $1 AND password = $2', [correo, password]);
+        const result = await client.query('SELECT * FROM usuario WHERE correo = $1 AND password = $2', [correo, password_encriptada]);
+
         if (result.rows.length > 0) {
             const user = result.rows[0];
-            const token = jwt.sign({ id_usuario: user.id_usuario, correo: user.correo }, 'secreto');  // 'secreto' debe ser una cadena segura en la vida real
-            //insertar en la tabla de sesion
+            const token = jwt.sign({ id_usuario: user.id_usuario, correo: user.correo }, 'secreto'); // Reemplazar 'secreto' con una cadena segura
+
+            // Imprimir la contraseña encriptada en la consola
+            console.log(password_encriptada);
+
+            // Opcional: Insertar en la tabla de sesión
+
             res.json({ 'message': 'Inicio de sesión exitoso', 'token': token, user });
         } else {
             res.status(401).json({ 'message': 'Correo o contraseña incorrectos' });
+            console.log(password_encriptada);
         }
+
         client.release();
     } catch (err) {
         console.error(err);
-        res.status(500).send("Error " + err);
+        // Mejorar el manejo de errores para proporcionar información específica al usuario
+        res.status(500).send("Error: " + err.message);
     }
 });
 router.post('/usuario/registro', async (req, res) => {
@@ -37,7 +50,6 @@ router.post('/usuario/registro', async (req, res) => {
     try {
         //inicio de la transaccion
         await client.query('BEGIN');
-
         //insertar a tabla usuario
         const inserta_Usuario = await client.query(
             'INSERT INTO usuario(correo, password, id_rol, fecha_registro) VALUES($1, $2, $3, $4)',
@@ -62,13 +74,10 @@ router.post('/usuario/registro', async (req, res) => {
     } catch (err) {
         // Revertir transacción en caso de error
         await client.query('ROLLBACK');
-
         console.error('Error al registrar usuario:', err);
-
         res.status(500).json({
             message: 'Error al registrar usuario'
         });
-
     } finally {
         // Liberar el cliente de la conexión a la base de datos
         client.release();
