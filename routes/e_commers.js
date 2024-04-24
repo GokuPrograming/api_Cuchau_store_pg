@@ -7,32 +7,34 @@ const paypal = require('@paypal/checkout-server-sdk')
 let clientId = 'ATsXThlRKQMIDRsC0xX-EWt57Vg_FkznXcQNTrWdHgT-X2337ZiEuWGnnOgtubRXGfMJICcIOZ_lZ6aY';
 let clientSecret = 'EPBsfImy1LBYQvyB02m-IsTvBIoZCudBOcRWGQhU2WkulbW1FwL6jJ0mpWEPbC7167A58-WFs42OXyHX';
 
+//paypal
+//paypal
 const environment = new paypal.core.SandboxEnvironment(clientId, clientSecret);
 const client = new paypal.core.PayPalHttpClient(environment);
 
-//paypal
 router.post('/api/create-order', async (req, res) => {
-    const { amount, currency_code } = req.body;
+    const { amount } = req.body;
+  
     const request = new paypal.orders.OrdersCreateRequest();
     request.prefer("return=representation");
     request.requestBody({
-        intent: 'CAPTURE',
-        purchase_units: [{
-            amount: {
-                currency_code: currency_code,
-                value: amount,
-            },
-        }],
+      intent: 'CAPTURE',
+      purchase_units: [{
+        amount: {
+          currency_code: 'MXN', // Ensure MXN for pesos
+          value: amount,
+        },
+      }],
     });
-
+  
     try {
-        const response = await client.execute(request);
-        res.status(200).json({ orderID: response.result.id });
+      const response = await client.execute(request);
+      res.status(200).json({ orderID: response.result.id });
     } catch (error) {
-        console.error(error);
-        res.status(500).json({ error: 'Error al crear el pedido' });
+      console.error(error);
+      res.status(500).json({ error: 'Error al crear el pedido' });
     }
-});
+  });
 router.post('/api/capture-order', async (req, res) => {
     const { orderID } = req.body;
 
@@ -47,6 +49,7 @@ router.post('/api/capture-order', async (req, res) => {
         res.status(500).json({ error: 'Error al capturar el pago' });
     }
 });
+
 
 
 router.get('/pais', async (req, res) => {
@@ -418,7 +421,8 @@ router.post('/user/cupon', async (req, res) => {
 
                 console.log("Esto es lo que se descontará=", descuento, "después del descuento=", newTotal);
                 res.status(200).json({
-                    message: "Esto es lo que se descontará= " + descuento + ", después del descuento= " + newTotal
+                    message: "Esto es lo que se descontará= " + descuento + ", después del descuento= " + newTotal,
+                    newTotal:newTotal
                 });
 
                 // Insertar el cupón usado en la tabla cupon_usado
