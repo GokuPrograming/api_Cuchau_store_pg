@@ -3,7 +3,8 @@ const crypto = require('crypto');
 const jwt = require('jsonwebtoken');
 const db = require('../database/connection');
 const router = express.Router();
-const paypal = require('@paypal/checkout-server-sdk')
+const paypal = require('@paypal/checkout-server-sdk');
+const { isNativeError } = require('util/types');
 let clientId = 'ATsXThlRKQMIDRsC0xX-EWt57Vg_FkznXcQNTrWdHgT-X2337ZiEuWGnnOgtubRXGfMJICcIOZ_lZ6aY';
 let clientSecret = 'EPBsfImy1LBYQvyB02m-IsTvBIoZCudBOcRWGQhU2WkulbW1FwL6jJ0mpWEPbC7167A58-WFs42OXyHX';
 
@@ -14,27 +15,27 @@ const client = new paypal.core.PayPalHttpClient(environment);
 
 router.post('/api/create-order', async (req, res) => {
     const { amount } = req.body;
-  
+
     const request = new paypal.orders.OrdersCreateRequest();
     request.prefer("return=representation");
     request.requestBody({
-      intent: 'CAPTURE',
-      purchase_units: [{
-        amount: {
-          currency_code: 'MXN', // Ensure MXN for pesos
-          value: amount,
-        },
-      }],
+        intent: 'CAPTURE',
+        purchase_units: [{
+            amount: {
+                currency_code: 'MXN', // Ensure MXN for pesos
+                value: amount,
+            },
+        }],
     });
-  
+
     try {
-      const response = await client.execute(request);
-      res.status(200).json({ orderID: response.result.id });
+        const response = await client.execute(request);
+        res.status(200).json({ orderID: response.result.id });
     } catch (error) {
-      console.error(error);
-      res.status(500).json({ error: 'Error al crear el pedido' });
+        console.error(error);
+        res.status(500).json({ error: 'Error al crear el pedido' });
     }
-  });
+});
 router.post('/api/capture-order', async (req, res) => {
     const { orderID } = req.body;
 
@@ -422,20 +423,8 @@ router.post('/user/cupon', async (req, res) => {
                 console.log("Esto es lo que se descontará=", descuento, "después del descuento=", newTotal);
                 res.status(200).json({
                     message: "Esto es lo que se descontará= " + descuento + ", después del descuento= " + newTotal,
-                    newTotal:newTotal
+                    newTotal: newTotal
                 });
-
-                // Insertar el cupón usado en la tabla cupon_usado
-                // await client.query(
-                //     'INSERT INTO cupon_usado (id_cupon_d, id_usuario) VALUES ($1, $2)',
-                //     [id_cupon, id_usuario]
-                // );
-
-                // Actualizar el carrito con el nuevo total
-                // await client.query(
-                //     'UPDATE carrito SET subtotal = $1 WHERE id_usuario = $2',
-                //     [newTotal, id_usuario]
-                // );
 
                 // Confirmar la transacción
                 await client.query('COMMIT');
@@ -500,29 +489,108 @@ router.post("/informacionCliente", async (req, res) => {
         res.status(500).json({ message: 'Error interno del servidor' });
     }
 });
-
 router.post('/realizar_compra', async (req, res) => {
-    const {
+    let {
         id_usuario, correo, nombre, apellido_paterno, apellido_materno, telefono,
-        direccion, descripcion, codigo_postal, id_estado, ciudad, id_pais, codigo
+        direccion, descripcion, codigo_postal, id_estado, ciudad, id_pais, codigo, total, orderID, cupon
     } = req.body;
-    // cantidad, subtotal,
-    // id_producto,codigo_cupon,
-    //validar que el cupon funcione 
-    ///secuencia para realizar la compra 
-    //primero se insertan los datos de la direccion: en la tabla de direccion(direccion,descripcion,id_cliente,codigo postal, id_states,ciudad)
-    //luego insertar los datos en pedido (id_usuario,id_direccion,correo, nombre apellidos, telefono, fecha)
-    //luego insertar el total en la venta 
-    //calidar el cupon,
-    //tomar el id de la venta y el id_pedido eh insertarlo en vanta detalle junto con los siguientes parametros(id_usuaio,id_producto,fecha_insertado,cantidad,subtotal,codigo de cupon,id_venta,id_pedido)
-
+    if (codigo === "") {
+        codigo = null;
+    }
     const resultadoValidacion = validarToken(req, res);
     if (!resultadoValidacion.id_usuario) {
         return res.status(401).json({ message: 'Token no válido' });
     }
+
     console.log("datos recibidos= ", id_usuario, correo, nombre, apellido_paterno, apellido_materno, telefono,
-        direccion, descripcion, codigo_postal, id_estado, ciudad, id_pais, codigo);
+        direccion, descripcion, codigo_postal, id_estado, ciudad, id_pais, "codigo: ", codigo, total, "order id: ", orderID);
+
+    let client;
+    try {
+        client = await db.connect();
+
+        await client.query('BEGIN');
+
+        // Seleccionar el id_cliente del usuario
+        const clienteID = await client.query('SELECT id_cliente FROM cliente WHERE id_usuario = $1', [id_usuario]);
+        const id_cliente = clienteID.rows[0].id_cliente;
+
+        // Insertar en la tabla dirección
+        const resultDireccion = await client.query(
+            'INSERT INTO direccion(direccion, descripcion, id_cliente, codigo_postal, id_states, ciudad) VALUES ($1, $2, $3, $4, $5, $6) RETURNING id_direccion',
+            [direccion, descripcion, id_cliente, codigo_postal, id_estado, ciudad]
+        );
+        const id_direccion = resultDireccion.rows[0].id_direccion;
+
+        // Insertar en la tabla pedido
+        const fecha = new Date(); // Obtener fecha actual
+        const resultPedido = await client.query(
+            'INSERT INTO pedido (id_usuario, id_direccion, correo, nombre, apellido_paterno, apellido_materno, telefono, fecha) VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING id_pedido',
+            [id_usuario, id_direccion, correo, nombre, apellido_paterno, apellido_materno, telefono, fecha]
+        );
+        const id_pedido = resultPedido.rows[0].id_pedido;
+
+        // Insertar en la tabla venta
+        const resultVenta = await client.query(
+            'INSERT INTO venta(total, fecha_venta, cupon, orderid) VALUES ($1, $2, $3, $4) RETURNING id_venta',
+            [total, fecha, codigo, orderID]  // Cambiado codigo por cupon
+        );
+        const id_venta = resultVenta.rows[0].id_venta;
+
+        // Insertar todos los productos que estaban en el carrito en la tabla venta_detalle
+        const { rows: productos } = await client.query(
+            'SELECT id_producto, cantidad, subtotal FROM carrito WHERE id_usuario = $1',
+            [id_usuario]
+        );
+
+        for (const producto of productos) {
+            const { id_producto, cantidad, subtotal } = producto;
+            const fecha_insertado = new Date(); // Obtener fecha actual
+
+            await client.query(
+                'INSERT INTO venta_detalle(id_usuario, id_producto, fecha_insertado, cantidad, subtotal, id_venta, id_pedido) VALUES ($1, $2, $3, $4, $5, $6, $7)',
+                [id_usuario, id_producto, fecha_insertado, cantidad, subtotal, id_venta, id_pedido]
+            );
+        }
+        //delete  from carrito where id_usuario=
+        await client.query(
+            'delete  from carrito where id_usuario=$1',
+            [id_usuario]  // Cambiado codigo por cupon
+        );
+        // Validar y aplicar el cupón
+        if (codigo !== null && codigo !== undefined) {
+            const buscarCupon = await client.query('SELECT id_cupon_d, porcentaje_descuento, codigo FROM cupon_disponible WHERE codigo = $1',
+                [codigo]
+            );
+            const id_cupon_d = buscarCupon.rows[0].id_cupon_d;
+
+            const insertaCuponEnUsado = await client.query(
+                'INSERT INTO cupon_usado(id_cupon_d, id_usuario, fecha_usado) VALUES ($1, $2, $3)',
+                [id_cupon_d, id_usuario, fecha]
+            );
+
+        }
+
+        await client.query('COMMIT'); // Confirmar la transacción
+        res.status(200).json({ message: 'Compra realizada con éxito' }); // Respuesta de compra exitosa
+
+    } catch (error) {
+        console.error(error.message);
+
+        if (client) {
+            await client.query('ROLLBACK'); // Si ocurre un error, realizar un rollback
+            client.release();
+        }
+
+        res.status(500).json({ message: 'Error al realizar la compra' });
+    } finally {
+        if (client) {
+            client.release();
+        }
+    }
 });
+
+
 
 
 
