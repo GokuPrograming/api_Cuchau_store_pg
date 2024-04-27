@@ -167,7 +167,6 @@ const validarToken = (req, res) => {
         return res.status(401).json({ message: 'No autorizado: Token inválido' });
     }
 };
-
 // router.post('/addToCar', async (req, res) => {
 //     const { id_producto, id_usuario, cantidad } = req.body;
 //     console.log("Producto y Usuario:", id_producto, id_usuario, "cantidad", cantidad);
@@ -287,9 +286,6 @@ router.post('/addToCar', async (req, res) => {
         }
     }
 });
-
-
-
 router.post('/user/car', async (req, res) => {
     const { id_usuario } = req.body;
     const resultadoValidacion = validarToken(req, res);
@@ -367,8 +363,6 @@ router.post('/perfil_usuario', async (req, res) => {
         res.status(500).json({ message: 'Error interno del servidor' }); // Cambia el mensaje de error
     };
 })
-
-
 router.post('/user/cupon', async (req, res) => {
     const { id_usuario, codigo } = req.body;
     console.log('usuario recibido:', id_usuario, 'codigo:', codigo);
@@ -451,9 +445,6 @@ router.post('/user/cupon', async (req, res) => {
         }
     }
 });
-
-
-
 router.post("/informacionCliente", async (req, res) => {
     const { id_usuario } = req.body;
     console.log("usuario recibido=", id_usuario);
@@ -591,7 +582,113 @@ router.post('/realizar_compra', async (req, res) => {
 });
 
 
+router.post('/user/MostrarPedido', async (req, res) => {
+    const { id_usuario } = req.body;
+    const resultadoValidacion = validarToken(req, res);
+    if (!resultadoValidacion.id_usuario) {
+        return;
+    }
+    try {
+        const client = await db.connect();
+        const result = await client.query(
+            'select id_pedido,fecha from pedido where id_usuario =$1 order by fecha desc;', [id_usuario]);
+        const results = { 'data': (result) ? result.rows : null };
+        res.json(results);
+        client.release();
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ message: 'Error interno del servidor' }); // Cambia el mensaje de error
+    }
+});
 
 
+router.post('/user/MostrarDatosDelPedido/', async (req, res) => {
+    let { id_pedido, id_usuario } = req.body;
+    id_pedido = parseInt(id_pedido);
+    id_usuario = parseInt(id_usuario);
+    console.log(id_pedido, id_usuario);
+
+    try {
+        const client = await db.connect();
+        const result = await client.query(
+            'SELECT p2.producto, SUM(cantidad) AS total_cantidad, SUM(subtotal) AS total_subtotal,p.id_pedido FROM venta_detalle JOIN pedido p ON venta_detalle.id_pedido = p.id_pedido JOIN producto p2 ON venta_detalle.id_producto = p2.id_producto WHERE p.id_usuario =$1 AND p.id_pedido = $2 GROUP BY p2.producto, p.id_pedido', [id_usuario, id_pedido]);
+        const results = { 'data': (result) ? result.rows : null };
+        console.log(results);
+        res.json(results);
+
+        client.release();
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ message: 'Error interno del servidor' }); // Cambia el mensaje de error si es necesario
+    }
+});
+
+/*select direccion,c.name as pais,s.name as estado,codigo_postal,descripcion,codigo_postal,ciudad,concat(c2.nombre,' ',c2.apellido_paterno,' ',c2.apellido_materno) as nombre
+from direccion
+join pedido p on direccion.id_direccion = p.id_direccion
+join public.states s on direccion.id_states = s.id
+join public.countries c on s.id_country = c.id
+join public.cliente c2 on direccion.id_cliente = c2.id_cliente
+where id_pedido=25;*/
+router.post('/user/MostrarDatosDelPedidoDireccion/', async (req, res) => {
+    let { id_pedido } = req.body;
+    id_pedido = parseInt(id_pedido);
+    // id_usuario = parseInt(id_usuario);
+    console.log(id_pedido);
+
+    try {
+        const client = await db.connect();
+        const result = await client.query(
+        `select direccion,c.name as pais,s.name as estado,codigo_postal,descripcion,codigo_postal,ciudad,concat(c2.nombre,' ',c2.apellido_paterno,' ',c2.apellido_materno) as nombre, v.total
+        from direccion
+        join pedido p on direccion.id_direccion = p.id_direccion
+        join public.states s on direccion.id_states = s.id
+        join public.countries c on s.id_country = c.id
+        join public.cliente c2 on direccion.id_cliente = c2.id_cliente
+        join public.venta_detalle vd on p.id_pedido = vd.id_pedido
+        join venta v on vd.id_venta = v.id_venta
+        where p.id_pedido=$1`, [id_pedido]);
+        const results = { 'data': (result) ? result.rows : null };
+        console.log(results);
+        res.json(results);
+        client.release();
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ message: 'Error interno del servidor' }); // Cambia el mensaje de error si es necesario
+    }
+});
+
+/* 
+SELECT COUNT(id_pedido) AS cantidad, DATE_TRUNC('month', fecha) AS mes
+FROM pedido
+WHERE id_usuario = 14
+  AND fecha >= DATE_TRUNC('month', CURRENT_DATE) - INTERVAL '11 months'
+GROUP BY DATE_TRUNC('month', fecha)
+ORDER BY mes;*/
+
+
+router.post('/user/grafica/', async (req, res) => {
+    let { id_usuario } = req.body;
+   // id_pedido = parseInt(id_pedido);
+    // id_usuario = parseInt(id_usuario);
+    console.log(id_usuario);
+    try {
+        const client = await db.connect();
+        const result = await client.query(
+        `SELECT COUNT(id_pedido) AS cantidad, TO_CHAR(DATE_TRUNC('month', fecha), 'Month') AS mes
+        FROM pedido
+        WHERE id_usuario = $1
+          AND fecha >= DATE_TRUNC('month', CURRENT_DATE) - INTERVAL '11 months'
+        GROUP BY DATE_TRUNC('month', fecha)
+        ORDER BY DATE_TRUNC('month', fecha);`, [id_usuario]);
+        const results = { 'data': (result) ? result.rows : null };
+        console.log(results);
+        res.json(results);
+        client.release();
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ message: 'Error interno del servidor' }); // Cambia el mensaje de error si es necesario
+    }
+});
 
 module.exports = router;
