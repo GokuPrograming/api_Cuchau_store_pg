@@ -680,7 +680,91 @@ router.post('/user/grafica/', async (req, res) => {
         WHERE id_usuario = $1
           AND fecha >= DATE_TRUNC('month', CURRENT_DATE) - INTERVAL '11 months'
         GROUP BY DATE_TRUNC('month', fecha)
-        ORDER BY DATE_TRUNC('month', fecha);`, [id_usuario]);
+        ORDER BY DATE_TRUNC('month', fecha)`, [id_usuario]);
+        const results = { 'data': (result) ? result.rows : null };
+        console.log(results);
+        res.json(results);
+        client.release();
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ message: 'Error interno del servidor' }); // Cambia el mensaje de error si es necesario
+    }
+});
+router.post('/admin/ventasTotalesPorProducto/', async (req, res) => {
+    const { id_usuario } = req.body;
+    console.log(id_usuario);
+    const resultadoValidacion = validarToken(req, res);
+    if (!resultadoValidacion.id_usuario) {
+        return;
+    }
+    try {
+        const client = await db.connect();
+        const result = await client.query(
+            `select sum(cantidad) as productos_comprados,p.producto from venta_detalle vd
+            join public.producto p on p.id_producto = vd.id_producto
+                inner join public.categoria c on c.id_categoria = p.id_categoria
+            join venta v on vd.id_venta = v.id_venta
+            group by p.producto, categoria
+            order by categoria desc`);
+        const results = { 'data': (result) ? result.rows : null };
+        res.json(results);
+        client.release();
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ message: 'Error interno del servidor' }); // Cambia el mensaje de error
+    };
+})
+
+router.post('/admin/ventasSemanales/', async (req, res) => {
+    const { id_usuario } = req.body;
+    console.log(id_usuario);
+    const resultadoValidacion = validarToken(req, res);
+    if (!resultadoValidacion.id_usuario) {
+        return;
+    }
+    try {
+        const client = await db.connect();
+        const result = await client.query(
+            `SELECT
+            DATE_TRUNC('week', fecha_venta) AS semana,
+            EXTRACT(WEEK FROM fecha_venta) AS semana_del_mes,
+            EXTRACT(MONTH FROM fecha_venta) AS mes,
+            EXTRACT(YEAR FROM fecha_venta) AS año,
+            COUNT(*) AS total_ventas_semana
+        FROM
+            venta
+        GROUP BY
+            semana, semana_del_mes, mes, año
+        ORDER BY
+            año DESC, mes DESC, semana_del_mes DESC`);
+        const results = { 'data': (result) ? result.rows : null };
+        res.json(results);
+        client.release();
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ message: 'Error interno del servidor' }); // Cambia el mensaje de error
+    };
+});
+
+router.post('/admin/graficaMesTotales/', async (req, res) => {
+    let { id_usuario } = req.body;
+   // id_pedido = parseInt(id_pedido);
+    // id_usuario = parseInt(id_usuario);
+    console.log(id_usuario);
+    try {
+        const client = await db.connect();
+        const result = await client.query(
+        `SELECT
+        DATE_TRUNC('month', fecha_venta) AS mes,
+        EXTRACT(MONTH FROM fecha_venta) AS mes_numero,
+        EXTRACT(YEAR FROM fecha_venta) AS año,
+        COUNT(*) AS total_ventas_mes
+    FROM
+        venta
+    GROUP BY
+        mes, mes_numero, año
+    ORDER BY
+        año DESC, mes_numero DESC`);
         const results = { 'data': (result) ? result.rows : null };
         console.log(results);
         res.json(results);
@@ -691,4 +775,47 @@ router.post('/user/grafica/', async (req, res) => {
     }
 });
 
+/*select correo,concat(nombre,apellido_paterno,apellido_materno) as nombre, telefono, rol from usuario u
+join public.cliente c on u.id_usuario = c.id_usuario
+join public.rol r on r.id_rol = u.id_rol */
+router.post('/admin/panel_user/', async (req, res) => {
+    let { id_usuario } = req.body;
+    console.log(id_usuario);
+    try {
+        const client = await db.connect();
+        const result = await client.query(
+        `select correo,concat(nombre,apellido_paterno,apellido_materno) as nombre, telefono, rol from usuario u
+        join public.cliente c on u.id_usuario = c.id_usuario
+        join public.rol r on r.id_rol = u.id_rol`);
+        const results = { 'data': (result) ? result.rows : null };
+        console.log(results);
+        res.json(results);
+        client.release();
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ message: 'Error interno del servidor' }); // Cambia el mensaje de error si es necesario
+    }
+});
+
+/*select correo,concat(nombre,' ',apellido_paterno,' ',apellido_materno) as nombre, telefono, rol from usuario u
+join public.cliente c on u.id_usuario = c.id_usuario
+join public.rol r on r.id_rol = u.id_rol */
+
+router.post('/admin/almacen/', async (req, res) => {
+    let { id_usuario } = req.body;
+    console.log(id_usuario);
+    try {
+        const client = await db.connect();
+        const result = await client.query(
+        `select producto,p.almacen, proveedor from producto p
+        join public.proveedor p2 on p2.id_proveedor = p.id_proveedor`);
+        const results = { 'data': (result) ? result.rows : null };
+        console.log(results);
+        res.json(results);
+        client.release();
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ message: 'Error interno del servidor' }); // Cambia el mensaje de error si es necesario
+    }
+});
 module.exports = router;
