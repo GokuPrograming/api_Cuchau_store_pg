@@ -8,12 +8,12 @@ const db = new Pool({
     // port: 5432,
     //ssl: true
     user:'migueldb',
-    host: '172.19.116.163',
-    database: 'cuchaustore',
-    password: '123',
+    host: 'dpg-cp2f4b6v3ddc73cl7gpg-a.oregon-postgres.render.com',
+    database: 'cuchaustore_g50j',
+    password: 'XEZZez4Jom8fYW6ePQRbqZgzASEEjP5k',
     port: 5432,
     //esto es para render
-   // ssl: true
+   ssl: true
 });
 
 module.exports = db;

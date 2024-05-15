@@ -580,8 +580,6 @@ router.post('/realizar_compra', async (req, res) => {
         }
     }
 });
-
-
 router.post('/user/MostrarPedido', async (req, res) => {
     const { id_usuario } = req.body;
     const resultadoValidacion = validarToken(req, res);
@@ -600,8 +598,6 @@ router.post('/user/MostrarPedido', async (req, res) => {
         res.status(500).json({ message: 'Error interno del servidor' }); // Cambia el mensaje de error
     }
 });
-
-
 router.post('/user/MostrarDatosDelPedido/', async (req, res) => {
     let { id_pedido, id_usuario } = req.body;
     id_pedido = parseInt(id_pedido);
