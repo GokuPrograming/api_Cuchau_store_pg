@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 {
   "name": "api_cuchau_store_pg",
   "version": "1.0.0",
@@ -16,3 +17,26 @@
     "pg": "^8.11.3"
   }
 }
+=======
+{
+  "name": "api_cuchau_store_pg",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "start": "node app.js",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "@paypal/checkout-server-sdk": "^1.0.3",
+    "cors": "^2.8.5",
+    "express": "^4.19.1",
+    "jsonwebtoken": "^9.0.2",
+    "mercadopago": "^2.0.9",
+    "pg": "^8.11.3"
+  }
+}
+>>>>>>> fcaffa2ab540678498f91c844122c1d255cfb4f6
