@@ -28,4 +28,6 @@ router.get('/proveedor/:oid', async (req, res) => {
         res.send("Error " + err);
     }
 });
+
+
 module.exports = router;
