@@ -1,22 +1,37 @@
+<<<<<<< HEAD
 
 const express = require('express')
+=======
+const express = require('express');
+>>>>>>> chucho
 const cors = require('cors');
 
 const app = express();
-const port = 3000;
+const port = process.env.PORT || 3002;
+
 // Habilitar CORS para todos los dominios
 app.use(cors());
+
 //exportar rutas
-const rol = require('./routes/rol')
-const user = require('./routes/usuario')
-const carrito = require('./routes/carrito')
-const producto = require('./routes/productos')
-const ecomers = require('./routes/e_commers')
+const rol = require('./routes/rol');
+const user = require('./routes/usuario');
+const carrito = require('./routes/carrito');
+const producto = require('./routes/productos');
+const ecomers = require('./routes/e_commers');
+const categorias = require('./routes/categorias');
+const cupones = require('./routes/cupones')
 
-// express json
+// express.json() reemplaza a bodyParser.json()
+app.use(express.urlencoded({ extended: false }));
+app.use(express.json());
 
-app.use(express.json())
 //uso de las rutas
 // app.use('/',verificar, rol, user, carrito, producto, ecomers)
+<<<<<<< HEAD
 app.use('/', rol, user, carrito, producto, ecomers)
 app.listen(port, async () => console.log(`Example app listening on port ${port}!`))
+=======
+app.use('/', rol, user, carrito, producto, ecomers, categorias, cupones);
+
+app.listen(port, async () => console.log(`Example app listening on port ${port}!`));
+>>>>>>> chucho
