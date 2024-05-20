@@ -36,6 +36,7 @@ router.post('/api/create-order', async (req, res) => {
         res.status(500).json({ error: 'Error al crear el pedido' });
     }
 });
+
 router.post('/api/capture-order', async (req, res) => {
     const { orderID } = req.body;
 
@@ -69,6 +70,7 @@ router.get('/pais', async (req, res) => {
         }
     }
 });
+
 router.get('/estados/:id', async (req, res) => {
     const { id } = req.params; // Obtener el ID desde los parámetros de ruta
     let client;
@@ -146,6 +148,7 @@ router.post('/login', async (req, res) => {
 //         res.status(500).json({ message: 'Error al agregar el producto al carrito' });
 //     }
 // });
+
 const validarToken = (req, res) => {
     try {
         const token = req.headers.authorization?.split(' ')[1];
@@ -167,6 +170,7 @@ const validarToken = (req, res) => {
         return res.status(401).json({ message: 'No autorizado: Token inválido' });
     }
 };
+
 // router.post('/addToCar', async (req, res) => {
 //     const { id_producto, id_usuario, cantidad } = req.body;
 //     console.log("Producto y Usuario:", id_producto, id_usuario, "cantidad", cantidad);

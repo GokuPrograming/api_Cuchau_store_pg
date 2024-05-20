@@ -1,26 +1,41 @@
 const express = require('express');
 const router = express.Router();
 const db = require('../database/connection')  // Importa tu conexión a la base de datos aquí
+const prisma = require('../database/conn')
+
 
 const verificarToken = require('./verificaToken');
 
-
-router.get('/carrito', verificarToken, async (req, res) => {
-    const { id_usuario } = req.usuario;  // Obtener id_usuario del token verificado
+router.get('/carrito', async (req, res) => {
     try {
-        const client = await db.connect();
+        const id_usuario = req.body.usuario;
 
-        // Consulta SQL para obtener todos los productos en el carrito del usuario
-        const result = await client.query('select * from carrito WHERE id_usuario = $1', [id_usuario]);
+        let carritos;
 
-        const results = { 'data': (result) ? result.rows : null };
-        res.json(results);
+        if (id_usuario) {
+            carritos = await prisma.carrito.findMany({
+                where: {
+                    id_usuario: parseInt(id_usuario),
+                },
+            });
+        } else {
+            carritos = await prisma.carrito.findMany();
+        }
 
-        client.release();
-    } catch (err) {
-        console.error(err);
-        res.status(500).send("inicia sesion" + err);
+
+        res.json(carritos);
+
+    } catch (error) {
+        console.error(error);
+        res.status(500).send("inicia sesion" + error);
     }
+});
+
+router.post('/carrito', async (req, res) => {
+    const newCarrito = await prisma.carrito.create({
+        data: req.body,
+    });
+    res.json(newCarrito);
 });
 
 

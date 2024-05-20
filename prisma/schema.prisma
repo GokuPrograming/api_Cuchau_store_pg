@@ -1,0 +1,183 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// schema.prisma
+model categoria {
+  id_categoria Int        @id @default(autoincrement())
+  categoria    String
+  descripcion  String
+  producto     producto[]
+}
+
+model countries {
+  id     Int     @id @default(autoincrement())
+  name   String
+  states state[]
+}
+
+model cupon_disponible {
+  id_cupon_d           Int           @id @default(autoincrement())
+  codigo               String
+  porcentaje_descuento Float
+  fecha_inicio         DateTime
+  fecha_fin            DateTime
+  cantidad             Int
+  cupon_usuado         cupon_usado[]
+}
+
+model proveedor {
+  id_proveedor Int        @id @default(autoincrement())
+  proveedor    String
+  telefono     String
+  correo       String
+  productos    producto[]
+}
+
+model producto {
+  id_producto   Int             @id @default(autoincrement())
+  producto      String
+  precio        Float
+  almacen       Int
+  proveedor     proveedor       @relation(fields: [id_proveedor], references: [id_proveedor])
+  id_proveedor  Int
+  categoria     categoria       @relation(fields: [id_categoria], references: [id_categoria])
+  id_categoria  Int
+  imagen        String?
+  carrito       carrito[]
+  venta_detalle venta_detalle[]
+}
+
+model rol {
+  id_rol  Int       @id @default(autoincrement())
+  rol     String
+  usuario usuario[]
+}
+
+model state {
+  id         Int         @id @default(autoincrement())
+  name       String
+  country    countries   @relation(fields: [id_country], references: [id])
+  id_country Int
+  direccion  direccion[]
+}
+
+model usuario {
+  id_usuario     Int             @id @default(autoincrement())
+  correo         String
+  password       String
+  rol            rol             @relation(fields: [id_rol], references: [id_rol])
+  id_rol         Int
+  fecha_registro DateTime
+  cliente        cliente? // Cambiar la relación a cliente como opcional
+  carrito        carrito[]
+  cupon_usado    cupon_usado[]
+  pedido         pedido[]
+  sesion         sesion[]
+  venta_detalle  venta_detalle[]
+}
+
+model carrito {
+  id_carrito      Int      @id @default(autoincrement())
+  usuario         usuario  @relation(fields: [id_usuario], references: [id_usuario])
+  id_usuario      Int
+  producto        producto @relation(fields: [id_producto], references: [id_producto])
+  id_producto     Int
+  cantidad        Int
+  subtotal        Float
+  fecha_insertado DateTime
+}
+
+model cliente {
+  id_cliente       Int         @id @default(autoincrement())
+  nombre           String
+  apellido_paterno String
+  apellido_materno String?
+  telefono         String?
+  fecha_nacimiento DateTime
+  usuario          usuario     @relation(fields: [id_usuario], references: [id_usuario]) // Establecer la relación como única
+  id_usuario       Int         @unique // Hacer que el id_usuario sea único en cliente
+  direcciones      direccion[]
+}
+
+model cupon_usado {
+  id_cupon_usado Int              @id @default(autoincrement())
+  cupond         cupon_disponible @relation(fields: [id_cupon_d], references: [id_cupon_d])
+  id_cupon_d     Int
+  usuario        usuario          @relation(fields: [id_usuario], references: [id_usuario])
+  id_usuario     Int
+  fecha_usado    DateTime
+}
+
+model direccion {
+  id_direccion  Int      @id @default(autoincrement())
+  direccion     String
+  descripcion   String
+  cliente       cliente  @relation(fields: [id_cliente], references: [id_cliente])
+  id_cliente    Int
+  codigo_postal String
+  estado        state?   @relation(fields: [id_state], references: [id])
+  id_state      Int?
+  ciudad        String
+  pedido        pedido[]
+}
+
+model pedido {
+  id_pedido        Int             @id @default(autoincrement())
+  usuario          usuario         @relation(fields: [id_usuario], references: [id_usuario])
+  id_usuario       Int
+  direccion        direccion       @relation(fields: [id_direccion], references: [id_direccion])
+  id_direccion     Int
+  correo           String
+  nombre           String
+  apellido_paterno String
+  apellido_materno String
+  telefono         String
+  fecha            DateTime
+  venta_detalle    venta_detalle[]
+}
+
+model sesion {
+  usuario        usuario  @relation(fields: [id_usuario], references: [id_usuario])
+  id_usuario     Int
+  token          String
+  fecha_creacion DateTime
+
+  @@id([id_usuario, token])
+}
+
+model venta {
+  id_venta      Int             @id @default(autoincrement())
+  total         Float
+  fecha_venta   DateTime
+  cupon         String
+  orderid       String
+  venta_detalle venta_detalle[]
+}
+
+model venta_detalle {
+  id_venta_detalle Int      @id @default(autoincrement())
+  usuario          usuario  @relation(fields: [id_usuario], references: [id_usuario])
+  id_usuario       Int
+  producto         producto @relation(fields: [id_producto], references: [id_producto])
+  id_producto      Int
+  fecha_insertado  DateTime
+  cantidad         Int
+  subtotal         Float
+  codigo_cupon     String?
+  venta            venta?   @relation(fields: [id_venta], references: [id_venta])
+  id_venta         Int?
+  pedido           pedido?  @relation(fields: [id_pedido], references: [id_pedido])
+  id_pedido        Int?
+}
