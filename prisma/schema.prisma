@@ -127,8 +127,8 @@ model direccion {
   cliente       cliente  @relation(fields: [id_cliente], references: [id_cliente])
   id_cliente    Int
   codigo_postal String
-  estado        state?   @relation(fields: [id_state], references: [id])
-  id_state      Int?
+  estado        state?   @relation(fields: [id_states], references: [id])
+  id_states     Int?
   ciudad        String
   pedido        pedido[]
 }

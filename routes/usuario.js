@@ -2,6 +2,7 @@ const express = require('express')
 const crypto = require('crypto');
 const jwt = require('jsonwebtoken');  // Importa jsonwebtoken
 const db = require('../database/connection')
+const prisma = require('../database/conn')
 const router = express.Router()
 const verificarToken = require('./verificaToken');
 ///innicio de sesion
@@ -100,7 +101,87 @@ router.get('/usuario', async (req, res) => {
     }
 });
 
+router.put('/usuario/:id', async (req, res) => {
+    const id = req.params.id;
+
+    const { correo, password, id_rol, nombre, apellido_paterno, apellido_materno, telefono, fecha_nacimiento } = req.body; // Corrección aquí
+
+    const updateUsuario = await prisma.usuario.update({
+        where: {
+            id_usuario: parseInt(id),
+        },
+        data: {
+            correo,
+            password,
+            id_rol,
+        },
+    });
+
+    if (nombre && apellido_paterno && apellido_materno && telefono && fecha_nacimiento) {
+        const updateCliente = await prisma.cliente.update({
+            where: {
+                id_usuario: parseInt(id),
+            },
+            data: {
+                nombre,
+                apellido_paterno,
+                apellido_materno,
+                telefono,
+                fecha_nacimiento
+            },
+        });
+        res.json({
+            "usuario": updateUsuario,
+            "cliente": updateCliente
+        });
+    } else {
+        res.json({
+            "usuario": updateUsuario
+        });
+    }
+
+});
+
+router.delete('/usuario/:id', async (req, res) => {
+    try {
+
+        const id = req.params.id;
+        console.log(id);
+        const deleteDireccion = await prisma.direccion.delete({
+            where: {
+                id_cliente: parseInt(id),
+            },
+        });
+        const deleteCliente = await prisma.cliente.delete({
+            where: {
+                id_cliente: parseInt(id),
+            },
+        });
+        const deleteUsuario = await prisma.usuario.delete({
+            where: {
+                id_usuario: parseInt(deleteCliente[0].id_usuario),
+            },
+        });
+
+        res.json({
+            "cliente": deleteCliente,
+            "usuario": deleteUsuario
+        });
+    } catch (error) {
+        res.json({
+            "error": error.message,
+            "details": error.meta || null,
+        })
+    }
+});
+
+router.get('/clientes', async (req, res) => {
+    const clientes = await prisma.cliente.findMany();
+    res.json(clientes);
+});
+
 module.exports = router;
+
 /*
 router.get('/usuario', async (req, res) => {
     try {
