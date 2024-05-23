@@ -1,9 +1,5 @@
-<<<<<<< HEAD
 
-const express = require('express')
-=======
 const express = require('express');
->>>>>>> chucho
 const cors = require('cors');
 
 const app = express();
@@ -27,11 +23,8 @@ app.use(express.json());
 
 //uso de las rutas
 // app.use('/',verificar, rol, user, carrito, producto, ecomers)
-<<<<<<< HEAD
-app.use('/', rol, user, carrito, producto, ecomers)
-app.listen(port, async () => console.log(`Example app listening on port ${port}!`))
-=======
+
 app.use('/', rol, user, carrito, producto, ecomers, categorias, cupones);
 
 app.listen(port, async () => console.log(`Example app listening on port ${port}!`));
->>>>>>> chucho
+
