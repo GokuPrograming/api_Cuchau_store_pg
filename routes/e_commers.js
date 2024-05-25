@@ -932,7 +932,7 @@ router.get('/producto/:id', async (req, res) => {
     let client;
     try {
         client = await db.connect();
-        const result = await client.query(`select producto, precio, almacen, imagen, producto.descripcion, categoria,proveedor
+        const result = await client.query(`select producto.id_categoria, id_producto, producto, precio, almacen, imagen, producto.descripcion, categoria,proveedor,p.id_proveedor
         from producto
                  join public.categoria c on c.id_categoria = producto.id_categoria
                  join public.proveedor p on p.id_proveedor = producto.id_proveedor
@@ -946,6 +946,70 @@ router.get('/producto/:id', async (req, res) => {
         if (client) {
             client.release();
         }
+    }
+});
+
+
+
+router.get('/proveedor', async (req, res) => {
+    // const { id } = req.params; // Obtener el ID desde los parámetros de ruta
+    let client;
+    try {
+        client = await db.connect();
+        const result = await client.query(`select proveedor.proveedor as proveedor, id_proveedor  from proveedor`);
+        const results = { 'data': (result) ? result.rows : null };
+        res.json(results);
+    } catch (error) {
+        console.error("Error al obtener los países:", error);
+        res.status(500).json({ message: "Error interno del servidor" });
+    } finally {
+        if (client) {
+            client.release();
+        }
+    }
+});
+router.get('/categoria', async (req, res) => {
+    // const { id } = req.params; // Obtener el ID desde los parámetros de ruta
+    let client;
+    try {
+        client = await db.connect();
+        const result = await client.query(`select id_categoria,categoria from categoria`);
+        const results = { 'data': (result) ? result.rows : null };
+        res.json(results);
+    } catch (error) {
+        console.error("Error al obtener los países:", error);
+        res.status(500).json({ message: "Error interno del servidor" });
+    } finally {
+        if (client) {
+            client.release();
+        }
+    }
+});
+router.post('/registrarProductos', async (req, res) => {
+    const { id_categoria, id_producto, producto, precio, almacen, descripcion, id_proveedor } = req.body;
+    console.log(id_categoria, id_producto, producto, precio, almacen, descripcion, id_proveedor);
+
+    if (!id_categoria || !id_producto || !producto || !precio || !almacen || !descripcion || !id_proveedor) {
+        return res.status(400).json({ message: 'Campos incompletos' });
+    }
+
+    try {
+        const client = await db.connect();
+        const result = await client.query(
+            'UPDATE producto SET producto = $1, precio = $2, almacen = $3, id_proveedor = $4, id_categoria = $5, descripcion = $6 WHERE id_producto = $7',
+            [producto, precio, almacen, id_proveedor, id_categoria, descripcion, id_producto]
+        );
+
+        if (result.rowCount > 0) {
+            res.json({ message: 'Producto actualizado exitosamente' });
+        } else {
+            res.status(404).json({ message: 'Producto no encontrado' });
+        }
+
+        client.release();
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ message: 'Error al actualizar el producto', error: err.message });
     }
 });
 module.exports = router;
