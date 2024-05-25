@@ -4,10 +4,10 @@ const prisma = require('../database/conn')
 const router = express.Router()
 
 
-router.get('/product', async (req, res) => {
-    const productS = await prisma.producto.findMany();
-    res.json(productS);
-});
+// router.get('/producto', async (req, res) => {
+//     const productS = await prisma.producto.findMany();
+//     res.json(productS);
+// });
 
 router.post('/product', async (req, res) => {
     const newProduct = await prisma.producto.create({
