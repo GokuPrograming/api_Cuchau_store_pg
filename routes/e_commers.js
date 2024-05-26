@@ -344,25 +344,52 @@ router.post("/addToCar", async (req, res) => {
   }
 });
 router.post("/user/car", async (req, res) => {
-  const { id_usuario } = req.body;
-  const resultadoValidacion = validarToken(req, res);
-  if (!resultadoValidacion.id_usuario) {
-    return;
-  }
-  try {
-    const client = await db.connect();
-    const result = await client.query(
-      "select p.producto,c.id_producto, c.id_usuario, sum(cantidad) as cantidad, sum(subtotal) as sub_total from carrito c inner join producto p on c.id_producto = p.id_producto where c.id_usuario=$1 group by c.id_producto, c.id_usuario,p.producto order by id_producto",
-      [id_usuario]
-    );
-    const results = { data: result ? result.rows : null };
-    res.json(results);
-    client.release();
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ message: "Error interno del servidor" }); // Cambia el mensaje de error
-  }
-});
+    const { id_usuario } = req.body;
+    const resultadoValidacion = validarToken(req, res);
+    if (!resultadoValidacion.id_usuario) {
+      return;
+    }
+    try {
+      const client = await db.connect();
+      const result = await client.query(
+        `SELECT 
+           p.producto,
+           c.id_producto,
+           c.id_usuario,
+           SUM(cantidad) AS cantidad,
+           p.imagen,
+           SUM(subtotal) AS sub_total 
+         FROM 
+           carrito c 
+         INNER JOIN 
+           producto p 
+         ON 
+           c.id_producto = p.id_producto 
+         WHERE 
+           c.id_usuario = $1 
+         GROUP BY 
+           c.id_producto, c.id_usuario, p.producto, p.imagen 
+         ORDER BY 
+           id_producto`,
+        [id_usuario]
+      );
+  
+      // Construir la URL completa de la imagen
+      const baseUrl = req.protocol + '://' + req.get('host');
+      const results = {
+        data: result.rows.map(row => ({
+          ...row,
+          imagen: `${req.protocol}://${req.get("host")}/img_productos/${row.imagen}`
+        }))
+      };
+  console.log(results)
+      res.json(results);
+      client.release();
+    } catch (err) {
+      console.error(err);
+      res.status(500).json({ message: "Error interno del servidor" });
+    }
+  });
 router.post("/user/car/total", async (req, res) => {
   const { id_usuario } = req.body;
   const resultadoValidacion = validarToken(req, res);
