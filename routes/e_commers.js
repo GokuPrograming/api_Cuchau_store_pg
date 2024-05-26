@@ -1315,48 +1315,51 @@ router.get("/product", async (req, res) => {
 });
 
 router.post("/AgregarProducto", upload.single("imagen"), async (req, res) => {
-  const { producto, proveedor, categoria, almacen, descripcion, precio } =
-    req.body;
-
-  const float_precio = parseFloat(precio);
-  const float_proveedor = parseFloat(proveedor);
-  const float_categoria = parseFloat(categoria);
-  const float_almacen = parseFloat(almacen);
-
-  // Obtener la imagen
-  const file = req.file;
-  if (!file) {
-    return res.status(400).json({ message: "Imagen no proporcionada" });
-  }
-
-  const imagenPath = file.path;
-
-  try {
-    const client = await db.connect();
-    const result = await client.query(
-      `INSERT INTO producto (producto, precio, almacen, id_proveedor, id_categoria, imagen, descripcion) 
+    const { producto, proveedor, categoria, almacen, descripcion, precio } = req.body;
+  
+    // Verifica si se proporcionó una imagen
+    const file = req.file;
+    if (!file) {
+      return res.status(400).json({ message: "Imagen no proporcionada" });
+    }
+  
+    // Convierte los valores numéricos a flotantes
+    const float_precio = parseFloat(precio);
+    const float_proveedor = parseFloat(proveedor);
+    const float_categoria = parseFloat(categoria);
+    const float_almacen = parseFloat(almacen);
+  
+    try {
+      const client = await db.connect();
+  
+      // Realiza la inserción en la base de datos
+      const result = await client.query(
+        `INSERT INTO producto (producto, precio, almacen, id_proveedor, id_categoria, imagen, descripcion) 
          VALUES ($1, $2, $3, $4, $5, $6, $7)`,
-      [
-        producto,
-        float_precio,
-        float_almacen,
-        float_proveedor,
-        float_categoria,
-        file.filename,
-        descripcion,
-      ]
-    );
-
-    client.release();
-    res.json({ message: "Producto agregado exitosamente" });
-  } catch (err) {
-    console.error("Error al insertar los datos en la base de datos:", err);
-    res.status(500).json({
-      message: "Error al insertar los datos en la base de datos",
-      error: err.message,
-    });
-  }
-});
+        [
+          producto,
+          float_precio,
+          float_almacen,
+          float_proveedor,
+          float_categoria,
+          file.filename, // Utiliza el nombre del archivo generado por multer
+          descripcion,
+        ]
+      );
+  
+      client.release();
+      
+      // Envía una respuesta exitosa al cliente
+      res.json({ message: "Producto agregado exitosamente" });
+    } catch (err) {
+      console.error("Error al insertar los datos en la base de datos:", err);
+      res.status(500).json({
+        message: "Error al insertar los datos en la base de datos",
+        error: err.message,
+      });
+    }
+  });
+  
 
 // if (
 //   !id_categoria ||
