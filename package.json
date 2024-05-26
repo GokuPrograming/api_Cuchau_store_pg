@@ -13,9 +13,11 @@
   "dependencies": {
     "@paypal/checkout-server-sdk": "^1.0.3",
     "@prisma/client": "^5.14.0",
+    "axios": "^1.7.2",
     "cors": "^2.8.5",
     "dotenv": "^16.4.5",
     "express": "^4.19.1",
+    "form-data": "^4.0.0",
     "jsonwebtoken": "^9.0.2",
     "md5": "^2.3.0",
     "mercadopago": "^2.0.9",

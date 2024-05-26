@@ -22,7 +22,9 @@ const storage = multer.diskStorage({
   },
   filename: (req, file, cb) => {
     const uniqueSuffix = Date.now() + "-" + Math.round(Math.random() * 1e9);
-    cb(null, uniqueSuffix + path.extname(file.originalname));
+    const originalName = file.originalname.replace(/(\.[\w\d_-]+)$/i, ""); // Quita la extensión del nombre original
+    const extension = path.extname(file.originalname); // Obtiene la extensión del archivo original
+    cb(null, originalName + "-" + uniqueSuffix + extension); // Combina el nombre original sin extensión, el sufijo único y la extensión
   },
 });
 
@@ -344,15 +346,15 @@ router.post("/addToCar", async (req, res) => {
   }
 });
 router.post("/user/car", async (req, res) => {
-    const { id_usuario } = req.body;
-    const resultadoValidacion = validarToken(req, res);
-    if (!resultadoValidacion.id_usuario) {
-      return;
-    }
-    try {
-      const client = await db.connect();
-      const result = await client.query(
-        `SELECT 
+  const { id_usuario } = req.body;
+  const resultadoValidacion = validarToken(req, res);
+  if (!resultadoValidacion.id_usuario) {
+    return;
+  }
+  try {
+    const client = await db.connect();
+    const result = await client.query(
+      `SELECT 
            p.producto,
            c.id_producto,
            c.id_usuario,
@@ -371,25 +373,27 @@ router.post("/user/car", async (req, res) => {
            c.id_producto, c.id_usuario, p.producto, p.imagen 
          ORDER BY 
            id_producto`,
-        [id_usuario]
-      );
-  
-      // Construir la URL completa de la imagen
-      const baseUrl = req.protocol + '://' + req.get('host');
-      const results = {
-        data: result.rows.map(row => ({
-          ...row,
-          imagen: `${req.protocol}://${req.get("host")}/img_productos/${row.imagen}`
-        }))
-      };
-  console.log(results)
-      res.json(results);
-      client.release();
-    } catch (err) {
-      console.error(err);
-      res.status(500).json({ message: "Error interno del servidor" });
-    }
-  });
+      [id_usuario]
+    );
+
+    // Construir la URL completa de la imagen
+    const baseUrl = req.protocol + "://" + req.get("host");
+    const results = {
+      data: result.rows.map((row) => ({
+        ...row,
+        imagen: `${req.protocol}://${req.get("host")}/img_productos/${
+          row.imagen
+        }`,
+      })),
+    };
+    console.log(results);
+    res.json(results);
+    client.release();
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: "Error interno del servidor" });
+  }
+});
 router.post("/user/car/total", async (req, res) => {
   const { id_usuario } = req.body;
   const resultadoValidacion = validarToken(req, res);
@@ -1163,103 +1167,73 @@ router.get("/categoria", async (req, res) => {
   }
 });
 router.get("/proveedores", async (req, res) => {
-    // const { id } = req.params; // Obtener el ID desde los parámetros de ruta
-    let client;
-    try {
-      client = await db.connect();
-      const result = await client.query(
-        `select proveedor.proveedor, id_proveedor from proveedor`
-      );
-      const results = { data: result ? result.rows : null };
-      res.json(results);
-    } catch (error) {
-      console.error("Error al obtener los países:", error);
-      res.status(500).json({ message: "Error interno del servidor" });
-    } finally {
-      if (client) {
-        client.release();
-      }
+  // const { id } = req.params; // Obtener el ID desde los parámetros de ruta
+  let client;
+  try {
+    client = await db.connect();
+    const result = await client.query(
+      `select proveedor.proveedor, id_proveedor from proveedor`
+    );
+    const results = { data: result ? result.rows : null };
+    res.json(results);
+  } catch (error) {
+    console.error("Error al obtener los países:", error);
+    res.status(500).json({ message: "Error interno del servidor" });
+  } finally {
+    if (client) {
+      client.release();
     }
-  });
+  }
+});
 
 router.post("/registrarProductos", async (req, res) => {
-    const {
-      id_categoria,
-      id_producto,
-      producto,
-      precio,
-      almacen,
-      descripcion,
-      id_proveedor,
-    } = req.body;
-  
-    const float_precio = parseFloat(precio); // Convertir el precio a un número de punto flotante
-  
-    console.log(
-      id_categoria,
-      id_producto,
-      producto,
-      float_precio, // Usar la versión convertida del precio
-      almacen,
-      descripcion,
-      id_proveedor
-    );
-  
-    if (
-      !id_categoria ||
-      !id_producto ||
-      !producto ||
-      !precio ||
-      !almacen ||
-      !descripcion ||
-      !id_proveedor
-    ) {
-      return res.status(400).json({ message: "Campos incompletos" });
-    }
-  
-    try {
-      const client = await db.connect();
-      const result = await client.query(
-        "UPDATE producto SET producto = $1, precio = $2, almacen = $3, id_proveedor = $4, id_categoria = $5, descripcion = $6 WHERE id_producto = $7",
-        [
-          producto,
-          float_precio, // Usar la versión convertida del precio
-          almacen,
-          id_proveedor,
-          id_categoria,
-          descripcion,
-          id_producto,
-        ]
-      );
-  
-      if (result.rowCount > 0) {
-        res.json({ message: "Producto actualizado exitosamente" });
-      } else {
-        res.status(404).json({ message: "Producto no encontrado" });
-      }
-  
-      client.release();
-    } catch (err) {
-      console.error(err);
-      res
-        .status(500)
-        .json({ message: "Error al actualizar el producto", error: err.message });
-    }
-  });
-  
-router.post("/actualizarImagen", upload.single("imagen"), async (req, res) => {
-  const { id_producto } = req.body;
-  const file = req.file;
+  const {
+    id_categoria,
+    id_producto,
+    producto,
+    precio,
+    almacen,
+    descripcion,
+    id_proveedor,
+  } = req.body;
 
-  if (!id_producto || !file) {
+  const float_precio = parseFloat(precio); // Convertir el precio a un número de punto flotante
+
+  console.log(
+    id_categoria,
+    id_producto,
+    producto,
+    float_precio, // Usar la versión convertida del precio
+    almacen,
+    descripcion,
+    id_proveedor
+  );
+
+  if (
+    !id_categoria ||
+    !id_producto ||
+    !producto ||
+    !precio ||
+    !almacen ||
+    !descripcion ||
+    !id_proveedor
+  ) {
     return res.status(400).json({ message: "Campos incompletos" });
   }
 
   try {
     const client = await db.connect();
     const result = await client.query(
-      "UPDATE producto SET imagen = $1 WHERE id_producto = $2",
-      [file.filename, id_producto]
+      "UPDATE producto SET producto = $1, precio = $2, almacen = $3, id_proveedor = $4, id_categoria = $5, descripcion = $6 WHERE id_producto = $7",
+      [
+        producto,
+        float_precio, // Usar la versión convertida del precio
+        almacen,
+        id_proveedor,
+        id_categoria,
+        descripcion,
+        id_producto,
+      ]
     );
 
     if (result.rowCount > 0) {
@@ -1274,6 +1248,37 @@ router.post("/actualizarImagen", upload.single("imagen"), async (req, res) => {
     res
       .status(500)
       .json({ message: "Error al actualizar el producto", error: err.message });
+  }
+});
+
+router.post("/actualizarImagen", upload.single("imagen"), async (req, res) => {
+  const { id_producto } = req.body;
+  const file = req.file;
+
+  if (!id_producto || !file) {
+    return res.status(400).json({ message: "Campos incompletos" });
+  }
+
+  let client;
+  try {
+    client = await db.connect();
+    const result = await client.query(
+      "UPDATE producto SET imagen = $1 WHERE id_producto = $2",
+      [file.filename, id_producto]
+    );
+
+    if (result.rowCount > 0) {
+      res.json({ message: "Producto actualizado exitosamente" });
+    } else {
+      res.status(404).json({ message: "Producto no encontrado" });
+    }
+  } catch (err) {
+    console.error(err);
+    res
+      .status(500)
+      .json({ message: "Error al actualizar el producto", error: err.message });
+  } finally {
+    if (client) client.release();
   }
 });
 
@@ -1309,82 +1314,89 @@ router.get("/product", async (req, res) => {
   }
 });
 
+router.post("/AgregarProducto", upload.single("imagen"), async (req, res) => {
+  const { producto, proveedor, categoria, almacen, descripcion, precio } =
+    req.body;
 
-router.post("/AgregarProducto", upload.single('imagen'), async (req, res) => {
-    const {
-      producto, proveedor, categoria, almacen, descripcion, precio
-    } = req.body;
-  
-    const float_precio = parseFloat(precio);
-    const float_proveedor = parseFloat(proveedor);
-    const float_categoria = parseFloat(categoria);
-    const float_almacen = parseFloat(almacen);
-  
-    // Obtener la imagen
-    const file = req.file;
-    if (!file) {
-      return res.status(400).json({ message: "Imagen no proporcionada" });
-    }
-    
-    const imagenPath = file.path;
-  
-    try {
-      const client = await db.connect();
-      const result = await client.query(
-        `INSERT INTO producto (producto, precio, almacen, id_proveedor, id_categoria, imagen, descripcion) 
+  const float_precio = parseFloat(precio);
+  const float_proveedor = parseFloat(proveedor);
+  const float_categoria = parseFloat(categoria);
+  const float_almacen = parseFloat(almacen);
+
+  // Obtener la imagen
+  const file = req.file;
+  if (!file) {
+    return res.status(400).json({ message: "Imagen no proporcionada" });
+  }
+
+  const imagenPath = file.path;
+
+  try {
+    const client = await db.connect();
+    const result = await client.query(
+      `INSERT INTO producto (producto, precio, almacen, id_proveedor, id_categoria, imagen, descripcion) 
          VALUES ($1, $2, $3, $4, $5, $6, $7)`,
-        [producto, float_precio, float_almacen, float_proveedor, float_categoria, file.filename, descripcion]
-      );
-  
-      client.release();
-      res.json({ message: "Producto agregado exitosamente" });
-    } catch (err) {
-      console.error('Error al insertar los datos en la base de datos:', err);
-      res.status(500).json({ message: "Error al insertar los datos en la base de datos", error: err.message });
-    }
-  });
-  
-  
-  
-    // if (
-    //   !id_categoria ||
-    //   !id_producto ||
-    //   !producto ||
-    //   !precio ||
-    //   !almacen ||
-    //   !descripcion ||
-    //   !id_proveedor
-    // ) {
-    //   return res.status(400).json({ message: "Campos incompletos" });
-    // }
-  
-    // try {
-    //   const client = await db.connect();
-    //   const result = await client.query(
-    //     "UPDATE producto SET producto = $1, precio = $2, almacen = $3, id_proveedor = $4, id_categoria = $5, descripcion = $6 WHERE id_producto = $7",
-    //     [
-    //       producto,
-    //       float_precio, // Usar la versión convertida del precio
-    //       almacen,
-    //       id_proveedor,
-    //       id_categoria,
-    //       descripcion,
-    //       id_producto,
-    //     ]
-    //   );
-  
-    //   if (result.rowCount > 0) {
-    //     res.json({ message: "Producto actualizado exitosamente" });
-    //   } else {
-    //     res.status(404).json({ message: "Producto no encontrado" });
-    //   }
-  
-    //   client.release();
-    // } catch (err) {
-    //   console.error(err);
-    //   res
-    //     .status(500)
-    //     .json({ message: "Error al actualizar el producto", error: err.message });
-    // }
- 
+      [
+        producto,
+        float_precio,
+        float_almacen,
+        float_proveedor,
+        float_categoria,
+        file.filename,
+        descripcion,
+      ]
+    );
+
+    client.release();
+    res.json({ message: "Producto agregado exitosamente" });
+  } catch (err) {
+    console.error("Error al insertar los datos en la base de datos:", err);
+    res.status(500).json({
+      message: "Error al insertar los datos en la base de datos",
+      error: err.message,
+    });
+  }
+});
+
+// if (
+//   !id_categoria ||
+//   !id_producto ||
+//   !producto ||
+//   !precio ||
+//   !almacen ||
+//   !descripcion ||
+//   !id_proveedor
+// ) {
+//   return res.status(400).json({ message: "Campos incompletos" });
+// }
+
+// try {
+//   const client = await db.connect();
+//   const result = await client.query(
+//     "UPDATE producto SET producto = $1, precio = $2, almacen = $3, id_proveedor = $4, id_categoria = $5, descripcion = $6 WHERE id_producto = $7",
+//     [
+//       producto,
+//       float_precio, // Usar la versión convertida del precio
+//       almacen,
+//       id_proveedor,
+//       id_categoria,
+//       descripcion,
+//       id_producto,
+//     ]
+//   );
+
+//   if (result.rowCount > 0) {
+//     res.json({ message: "Producto actualizado exitosamente" });
+//   } else {
+//     res.status(404).json({ message: "Producto no encontrado" });
+//   }
+
+//   client.release();
+// } catch (err) {
+//   console.error(err);
+//   res
+//     .status(500)
+//     .json({ message: "Error al actualizar el producto", error: err.message });
+// }
+
 module.exports = router;
