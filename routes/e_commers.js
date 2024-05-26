@@ -1305,7 +1305,7 @@ router.post("/AgregarProducto", upload.single('imagen'), async (req, res) => {
       const result = await client.query(
         `INSERT INTO producto (producto, precio, almacen, id_proveedor, id_categoria, imagen, descripcion) 
          VALUES ($1, $2, $3, $4, $5, $6, $7)`,
-        [producto, float_precio, float_almacen, float_proveedor, float_categoria, imagenPath, descripcion]
+        [producto, float_precio, float_almacen, float_proveedor, float_categoria, file.filename, descripcion]
       );
   
       client.release();
