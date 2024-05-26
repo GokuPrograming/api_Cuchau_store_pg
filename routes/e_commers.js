@@ -17,16 +17,16 @@ let clientSecret =
 const environment = new paypal.core.SandboxEnvironment(clientId, clientSecret);
 const client = new paypal.core.PayPalHttpClient(environment);
 const storage = multer.diskStorage({
-    destination: (req, file, cb) => {
-      cb(null, "img_productos/"); // Asegúrate de que esta carpeta exista
-    },
-    filename: (req, file, cb) => {
-      const uniqueSuffix = Date.now() + "-" + Math.round(Math.random() * 1e9);
-      cb(null, uniqueSuffix + path.extname(file.originalname));
-    },
-  });
-  
-  const upload = multer({ storage: storage });
+  destination: (req, file, cb) => {
+    cb(null, "img_productos/"); // Asegúrate de que esta carpeta exista
+  },
+  filename: (req, file, cb) => {
+    const uniqueSuffix = Date.now() + "-" + Math.round(Math.random() * 1e9);
+    cb(null, uniqueSuffix + path.extname(file.originalname));
+  },
+});
+
+const upload = multer({ storage: storage });
 
 router.post("/api/create-order", async (req, res) => {
   const { amount } = req.body;
@@ -1136,51 +1136,83 @@ router.get("/categoria", async (req, res) => {
 });
 
 router.post("/registrarProductos", async (req, res) => {
-  const {
-    id_categoria,
-    id_producto,
-    producto,
-    precio,
-    almacen,
-    descripcion,
-    id_proveedor,
-  } = req.body;
-  console.log(
-    id_categoria,
-    id_producto,
-    producto,
-    precio,
-    almacen,
-    descripcion,
-    id_proveedor
-  );
+    const {
+      id_categoria,
+      id_producto,
+      producto,
+      precio,
+      almacen,
+      descripcion,
+      id_proveedor,
+    } = req.body;
+  
+    const float_precio = parseFloat(precio); // Convertir el precio a un número de punto flotante
+  
+    console.log(
+      id_categoria,
+      id_producto,
+      producto,
+      float_precio, // Usar la versión convertida del precio
+      almacen,
+      descripcion,
+      id_proveedor
+    );
+  
+    if (
+      !id_categoria ||
+      !id_producto ||
+      !producto ||
+      !precio ||
+      !almacen ||
+      !descripcion ||
+      !id_proveedor
+    ) {
+      return res.status(400).json({ message: "Campos incompletos" });
+    }
+  
+    try {
+      const client = await db.connect();
+      const result = await client.query(
+        "UPDATE producto SET producto = $1, precio = $2, almacen = $3, id_proveedor = $4, id_categoria = $5, descripcion = $6 WHERE id_producto = $7",
+        [
+          producto,
+          float_precio, // Usar la versión convertida del precio
+          almacen,
+          id_proveedor,
+          id_categoria,
+          descripcion,
+          id_producto,
+        ]
+      );
+  
+      if (result.rowCount > 0) {
+        res.json({ message: "Producto actualizado exitosamente" });
+      } else {
+        res.status(404).json({ message: "Producto no encontrado" });
+      }
+  
+      client.release();
+    } catch (err) {
+      console.error(err);
+      res
+        .status(500)
+        .json({ message: "Error al actualizar el producto", error: err.message });
+    }
+  });
+  
+router.post("/actualizarImagen", upload.single("imagen"), async (req, res) => {
+  const { id_producto } = req.body;
+  const file = req.file;
 
-  if (
-    !id_categoria ||
-    !id_producto ||
-    !producto ||
-    !precio ||
-    !almacen ||
-    !descripcion ||
-    !id_proveedor
-  ) {
+  if (!id_producto || !file) {
     return res.status(400).json({ message: "Campos incompletos" });
   }
 
   try {
     const client = await db.connect();
     const result = await client.query(
-      "UPDATE producto SET producto = $1, precio = $2, almacen = $3, id_proveedor = $4, id_categoria = $5, descripcion = $6, precio=$8 WHERE id_producto = $7",
-      [
-        producto,
-        precio,
-        almacen,
-        id_proveedor,
-        id_categoria,
-        descripcion,
-        id_producto,
-        precio,
-      ]
+      "UPDATE producto SET imagen = $1 WHERE id_producto = $2",
+      [file.filename, id_producto]
     );
 
     if (result.rowCount > 0) {
@@ -1197,35 +1229,6 @@ router.post("/registrarProductos", async (req, res) => {
       .json({ message: "Error al actualizar el producto", error: err.message });
   }
 });
-router.post("/actualizarImagen", upload.single('imagen'), async (req, res) => {
-    const { id_producto } = req.body;
-    const file = req.file;
-  
-    if (!id_producto || !file) {
-      return res.status(400).json({ message: "Campos incompletos" });
-    }
-  
-    try {
-      const client = await db.connect();
-      const result = await client.query(
-        "UPDATE producto SET imagen = $1 WHERE id_producto = $2",
-        [file.filename, id_producto]
-      );
-  
-      if (result.rowCount > 0) {
-        res.json({ message: "Producto actualizado exitosamente" });
-      } else {
-        res.status(404).json({ message: "Producto no encontrado" });
-      }
-  
-      client.release();
-    } catch (err) {
-      console.error(err);
-      res.status(500).json({ message: "Error al actualizar el producto", error: err.message });
-    }
-  });
-  
-
 
 router.get("/product", async (req, res) => {
   let client;
