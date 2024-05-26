@@ -1069,15 +1069,16 @@ router.post("/admin/TopVentas", async (req, res) => {
   try {
     const client = await db.connect();
     const result = await client.query(
-      `select producto.producto as producto, name as estado, total,cantidad from producto
-            inner join public.venta_detalle vd on producto.id_producto = vd.id_producto
-            inner join public.venta v on v.id_venta = vd.id_venta
-            join public.pedido p on vd.id_pedido = p.id_pedido
-            join public.direccion d on d.id_direccion = p.id_direccion
-            join public.states s on s.id = d.id_states
-            group by name, producto.producto, total,cantidad
-            order by total desc
-            limit 7`
+      `select producto.producto as producto, name as estado,subtotal, cantidad
+      from producto
+               inner join public.venta_detalle vd on producto.id_producto = vd.id_producto
+               inner join public.venta v on v.id_venta = vd.id_venta
+               join public.pedido p on vd.id_pedido = p.id_pedido
+               join public.direccion d on d.id_direccion = p.id_direccion
+               join public.states s on s.id = d.id_states
+      group by name, producto.producto, subtotal, cantidad
+      order by subtotal desc
+      limit 7`
     );
     const results = { data: result ? result.rows : null };
     res.json(results);
