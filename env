@@ -4,8 +4,8 @@
 # Prisma supports the native connection string format for PostgreSQL, MySQL, SQLite, SQL Server, MongoDB and CockroachDB.
 # See the documentation for all the connection string options: https://pris.ly/d/connection-strings
 
-DATABASE_URL="postgres://migueldb:XEZZez4Jom8fYW6ePQRbqZgzASEEjP5k@dpg-cp2f4b6v3ddc73cl7gpg-a.oregon-postgres.render.com/cuchaustore_g50j"
-SECRET = proyectoweb
-POST=3000
-IMGUR_CLIENT_ID=71400580c09df62
-IMGUR_CLIENT_SECRET=5fd397864b7f5cad16c39ba29994613a199654d5
+DATABASE_URL=
+SECRET = 
+POST=
+IMGUR_CLIENT_ID=
+IMGUR_CLIENT_SECRET=
